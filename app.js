@@ -1,4 +1,4 @@
-
+require("dotenv").config();
 const express=require("express");
 const ejs=require("ejs");
 const app=express();
@@ -12,8 +12,8 @@ const usersSchema=new mongoose.Schema({
     username:String,
     password:String
 });
-const secret="Arbaz is a very bad boy";
-usersSchema.plugin(encrypt,{secret:secret, encryptedFields:["password"]});
+
+usersSchema.plugin(encrypt,{secret:process.env.SECRET, encryptedFields:["password"]});
 const User=new mongoose.model("User",usersSchema);
 app.get("/",(req,res)=>{
     res.render("home");
