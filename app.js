@@ -1,5 +1,5 @@
 
-const md5=require("md5");
+const bcrypt=require("bcrypt");
 require("dotenv").config();
 const express=require("express");
 const ejs=require("ejs");
@@ -14,8 +14,7 @@ const usersSchema=new mongoose.Schema({
     username:String,
     password:String
 });
-
-// usersSchema.plugin(encrypt,{secret:process.env.SECRET, encryptedFields:["password"]});
+const mySaltRounds=10;
 const User=new mongoose.model("User",usersSchema);
 app.get("/",(req,res)=>{
     res.render("home");
@@ -26,10 +25,11 @@ app.get("/login",(req,res)=>{
 app.get("/register",(req,res)=>{
     res.render("register");
 });
-app.post("/register",(req,res)=>{
+app.post("/register",async (req,res)=>{
+    const hash=await bcrypt.hash(req.body.password,mySaltRounds);
     const newUser=new User({
         username:req.body.username,
-        password:md5(req.body.password)
+        password:hash
     });
     newUser.save()
     .then(value=>{
@@ -41,21 +41,42 @@ app.post("/register",(req,res)=>{
     });
 });
 
-app.post("/login",(req,res)=>{
-    User.findOne({username:req.body.username})
-    .then(foundUser=>{
-        if(foundUser.password===md5(req.body.password)){
-            res.render("secrets");
+app.post("/login",async (req,res)=>{
+    try{
+        const foundUser=await User.findOne({username:req.body.username});
+        if(foundUser){
+            const result=await bcrypt.compare(req.body.password,foundUser.password);
+            if(result){
+                res.render("secrets");
+            }
+            else{
+                res.status(401).send("Wrong usernameor password");
+            }
         }
         else{
-            res.status(401).send("Wrong username or password!");
-           
+            res.status(401).send("Wrong usernameor password");
+    
         }
-       
-    })
-    .catch(error=>{
+    }
+    catch(error){
         console.error(error);
-    })
+    }
+    
+        
+    // .then(foundUser=>{
+       
+    //     if(foundUser.password===md5(req.body.password)){
+    //         res.render("secrets");
+    //     }
+    //     else{
+    //         res.status(401).send("Wrong username or password!");
+           
+    //     }
+       
+    // })
+    // .catch(error=>{
+    //     console.error(error);
+    // })
 });
 
 
